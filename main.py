@@ -42,7 +42,7 @@ for term in list_of_terms:
 
 # QP glossary redis seeding:
 for term, definition in SEED_DATA.items():
-    r.set(term, definition)
+    r.set(term.lower(), definition)
 
 print("Done seeding redis")
 print(f"Redis seed example. r.get('AE'): {r.get('AE')}")
