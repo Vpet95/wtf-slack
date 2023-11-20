@@ -2,6 +2,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from Levenshtein import distance
 import json
 from urllib.parse import parse_qs, urlparse
+import redis
+r = redis.Redis()
+r.ping()
 
 list_of_terms = [
     "apple",
@@ -26,6 +29,8 @@ list_of_terms = [
     "watermelon",
 ]
 
+r = redis.Redis(decode_responses=True)
+
 def parse_command(command_name: str, text: str):
     if(command_name == '/wtf-add'):
         # todo - implement logic for adding terms 
@@ -36,7 +41,7 @@ def parse_command(command_name: str, text: str):
         pass 
     else:
         # user is querying a term        
-        if text in list_of_terms:
+        if r.get(text):
             return f"<Definition for {text} here>"
         else:
             minimum_distance = -1
@@ -52,6 +57,9 @@ def parse_command(command_name: str, text: str):
             
             return f"Term '{text}' not found. Did you mean '{likely_match}'? Alternatively, add a definition for it with `/wtf-add [\"]<term>[\"] <definition>`"
 
+# temp redis seeding:
+for term in list_of_terms:
+    r.set(term, f"the definition of {term}")
 class handler(BaseHTTPRequestHandler):
     # example POST request handler - it just response with some text. We'll want to flesh this out
     # to parse out the request, figure out which term the user wants info for, query the db, and respond
@@ -63,8 +71,8 @@ class handler(BaseHTTPRequestHandler):
 
         params = parse_qs(urlparse(body).path)
 
-        response = parse_command(params['command'], params['text'][0])
-
+        response = parse_command(params['command'], params['text'][0].lower())
+        
         response_data = {
             "text": response,
             "response_type": "in_channel",
