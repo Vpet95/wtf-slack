@@ -36,13 +36,16 @@ for term in list_of_terms:
     r.set(term, f"the definition of {term}")
 
 def parse_command(command_name: str, text: str):
+    print(command_name)
     if(command_name == '/wtf-add'):
-        # todo - implement logic for adding terms 
-        # syntax looks like /wtf-add ["] term ["] definition 
-        # where term can be surrounded by double-quotes if it's a multi-word term. 
-        # Everything after it is considered the definition.
+        # parse out the term and definition 
+        # the term might be multi-token and have quotes around it, so we need to handle that
+        term = (text[1:text.find('"', 1) - 1] if text[0] == '"' else text[0:text.find(' ')]).replace('"', '').lower()
+        definition = (text[text.find('"', 1) + 1:] if text[0] == '"' else text[text.find(' ') + 1:]).strip()
 
-        pass 
+        r.set(term, definition)
+
+        return f"Added definition for '{term}'"
     else:
         # user is querying a term
         definition = r.get(text)   
@@ -73,7 +76,7 @@ class handler(BaseHTTPRequestHandler):
 
         params = parse_qs(urlparse(body).path)
 
-        response = parse_command(params['command'], params['text'][0].lower())
+        response = parse_command(params['command'][0], params['text'][0].lower())
 
         response_data = {
             "text": response,
