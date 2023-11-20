@@ -3,8 +3,12 @@ from Levenshtein import distance
 import json
 from urllib.parse import parse_qs, urlparse
 import redis
+
 r = redis.Redis()
 r.ping()
+
+SLACK_OPEN_QUOTE = "“"
+SLACK_CLOSE_QUOTE = "”"
 
 list_of_terms = [
     "apple",
@@ -38,13 +42,22 @@ for term in list_of_terms:
 def parse_command_term_and_definition(text: str):
     # parse out the term and definition 
     # the term might be multi-token and have quotes around it, so we need to handle that
-    term = (text[1:text.find('"', 1) - 1] if text[0] == '"' else text[0:text.find(' ')]).replace('"', '').lower()
-    definition = "" if len(term) == len(text) else (text[text.find('"', 1) + 1:] if text[0] == '"' else text[text.find(' ') + 1:]).strip()
+    term_start_index = 1 if text[0] == SLACK_OPEN_QUOTE else 0
+    term_end_char = SLACK_CLOSE_QUOTE if text[0] == SLACK_OPEN_QUOTE else (" " if " " in text else None)
+
+    term = (text[term_start_index:text.find(term_end_char)]).lower()
+    definition = "" if len(term) == len(text) else (text[text.find(SLACK_CLOSE_QUOTE, 1) + 1:] if text[0] == SLACK_OPEN_QUOTE else text[text.find(' ') + 1:]).strip()
 
     return term, definition
 
 def parse_command(command_name: str, text: str):
-    if(command_name == '/wtf-add'):
+    if(command_name == '/wtf-delete'):
+        term, _ = parse_command_term_and_definition(text)
+
+        r.delete(term)
+
+        return f"Deleted definition for '{term}'"
+    elif(command_name == '/wtf-add'):
         term, definition = parse_command_term_and_definition(text)
 
         r.set(term, definition)
@@ -52,7 +65,8 @@ def parse_command(command_name: str, text: str):
         return f"Added definition for '{term}'"
     else:
         # user is querying a term
-        definition = r.get(text)   
+        term, _ = parse_command_term_and_definition(text)
+        definition = r.get(term)   
         if definition is not None:
             return definition
         else:
