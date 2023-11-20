@@ -35,13 +35,17 @@ r = redis.Redis(decode_responses=True)
 for term in list_of_terms:
     r.set(term, f"the definition of {term}")
 
+def parse_command_term_and_definition(text: str):
+    # parse out the term and definition 
+    # the term might be multi-token and have quotes around it, so we need to handle that
+    term = (text[1:text.find('"', 1) - 1] if text[0] == '"' else text[0:text.find(' ')]).replace('"', '').lower()
+    definition = "" if len(term) == len(text) else (text[text.find('"', 1) + 1:] if text[0] == '"' else text[text.find(' ') + 1:]).strip()
+
+    return term, definition
+
 def parse_command(command_name: str, text: str):
-    print(command_name)
     if(command_name == '/wtf-add'):
-        # parse out the term and definition 
-        # the term might be multi-token and have quotes around it, so we need to handle that
-        term = (text[1:text.find('"', 1) - 1] if text[0] == '"' else text[0:text.find(' ')]).replace('"', '').lower()
-        definition = (text[text.find('"', 1) + 1:] if text[0] == '"' else text[text.find(' ') + 1:]).strip()
+        term, definition = parse_command_term_and_definition(text)
 
         r.set(term, definition)
 
@@ -76,7 +80,7 @@ class handler(BaseHTTPRequestHandler):
 
         params = parse_qs(urlparse(body).path)
 
-        response = parse_command(params['command'][0], params['text'][0].lower())
+        response = "Error: missing term" if 'text' not in params else parse_command(params['command'][0], params['text'][0].lower())
 
         response_data = {
             "text": response,
