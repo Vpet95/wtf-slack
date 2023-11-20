@@ -23,6 +23,7 @@ that, remember to set your port to 8000 (ngrok's instructions default to 80).
 
 ## run the app
 
+Start your virtual environment: `source .venv/bin/activate`
 In another terminal tab, run the python server with `python3 ./main.py`
 
 ## slack app
