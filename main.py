@@ -44,8 +44,9 @@ def parse_command_term_and_definition(text: str):
     # the term might be multi-token and have quotes around it, so we need to handle that
     term_start_index = 1 if text[0] == SLACK_OPEN_QUOTE else 0
     term_end_char = SLACK_CLOSE_QUOTE if text[0] == SLACK_OPEN_QUOTE else (" " if " " in text else None)
+    term_end_index = text.find(term_end_char) if term_end_char is not None else len(text)
 
-    term = (text[term_start_index:text.find(term_end_char)]).lower()
+    term = (text[term_start_index:term_end_index]).lower()
     definition = "" if len(term) == len(text) else (text[text.find(SLACK_CLOSE_QUOTE, 1) + 1:] if text[0] == SLACK_OPEN_QUOTE else text[text.find(' ') + 1:]).strip()
 
     return term, definition
@@ -57,8 +58,18 @@ def parse_command(command_name: str, text: str):
         r.delete(term)
 
         return f"Deleted definition for '{term}'"
+    if(command_name == '/wtf-update'):
+        term, definition = parse_command_term_and_definition(text)
+
+        if(r.get(term) is None):
+            r.set(term, definition)
+            return f"Term '{term}' not found. Added new definition for '{term}'"
+        else:
+            r.set(term, definition)
+            return f"Updated definition for '{term}'"
     elif(command_name == '/wtf-add'):
         term, definition = parse_command_term_and_definition(text)
+        print(f"Adding term: '{term}'")
 
         r.set(term, definition)
 
@@ -66,6 +77,7 @@ def parse_command(command_name: str, text: str):
     else:
         # user is querying a term
         term, _ = parse_command_term_and_definition(text)
+        print(f"looking up term: '{term}'")
         definition = r.get(term)   
         if definition is not None:
             return definition
