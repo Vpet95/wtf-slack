@@ -2,6 +2,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from Levenshtein import distance
 import json
 from urllib.parse import parse_qs, urlparse
+import redis
+r = redis.Redis()
+r.ping()
 
 list_of_terms = [
     "apple",
@@ -26,7 +29,12 @@ list_of_terms = [
     "watermelon",
 ]
 
+r = redis.Redis(decode_responses=True)
+# r.set('apple', 'the definition of apple')
 
+# temp redis seeding:
+for term in list_of_terms:
+    r.set(term, f"the definition of {term}")
 class handler(BaseHTTPRequestHandler):
     # example POST request handler - it just response with some text. We'll want to flesh this out
     # to parse out the request, figure out which term the user wants info for, query the db, and respond
@@ -45,6 +53,8 @@ class handler(BaseHTTPRequestHandler):
         print(distance(user_entry, "term2"))
         if user_entry in list_of_terms:
             response = "The term you entered is in the list of terms."
+            if r.get(user_entry) is not None:
+                response += f" -> {r.get(user_entry)}"
         else:
             for term in list_of_terms:
                 if (
