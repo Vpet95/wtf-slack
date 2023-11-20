@@ -21,9 +21,21 @@ Copy the Forwarding address, which will look like
 Note: this address will change every time you restart ngrok. You can get one static domain with a free account in the "Domains" tab - if you choose to do
 that, remember to set your port to 8000 (ngrok's instructions default to 80).
 
+## redis
+
+Install redis-stack:
+`brew tap redis-stack/redis-stack`
+then
+`brew install redis-stack`
+
+Follow [the instructions here](https://redis.io/docs/install/install-stack/mac-os/)
+to check and update your `$PATH` with the correct redis-stack-server version
+
+In another terminal tab, start the redis stack server: `redis-stack-server`
+
 ## run the app
 
-Start your virtual environment: `source .venv/bin/activate`
+Install python dependencies: `pip install -r requirements.txt`
 In another terminal tab, run the python server with `python3 ./main.py`
 
 ## slack app
