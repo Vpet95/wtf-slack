@@ -1,5 +1,6 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+from urllib.parse import parse_qs, urlparse
 
 class handler(BaseHTTPRequestHandler):
     # example POST request handler - it just response with some text. We'll want to flesh this out 
@@ -7,12 +8,20 @@ class handler(BaseHTTPRequestHandler):
     # OR use a nearest-distance algorithm and respond with suggestions 
     # eventually: add functionality to populate the DB with new terms 
     def do_POST(self):
-        self.send_response(200)
-        self.send_header('Content-type','application/json')
-        self.end_headers()
+        content_length = int(self.headers['Content-Length'])
+        body = self.rfile.read(content_length).decode('utf-8')
+
+        params = parse_qs(urlparse(body).path)
+
+        # params['text'] has the user's query
+        print(params)
 
         response_data = { 'text': "Hello, World! Here is a POST response. It worked!", "response_type": "in_channel"}
         response_json = json.dumps(response_data)
+
+        self.send_response(200)
+        self.send_header('Content-type','application/json')
+        self.end_headers()
 
         self.wfile.write(bytes(response_json, "utf8"))
 
