@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 from urllib.parse import parse_qs, urlparse
 
-class handler(BaseHTTPRequestHandler):
+class RequestHandler(BaseHTTPRequestHandler):
     # example POST request handler - it just response with some text. We'll want to flesh this out 
     # to parse out the request, figure out which term the user wants info for, query the db, and respond
     # OR use a nearest-distance algorithm and respond with suggestions 
@@ -16,7 +16,7 @@ class handler(BaseHTTPRequestHandler):
         # params['text'] has the user's query
         print(params)
 
-        response_data = { 'text': "Hello, World! Here is a POST response. It worked!", "response_type": "in_channel"}
+        response_data = { 'text': "If you're seeing this, hot reloading worked!", "response_type": "in_channel"}
         response_json = json.dumps(response_data)
 
         self.send_response(200)
@@ -25,6 +25,6 @@ class handler(BaseHTTPRequestHandler):
 
         self.wfile.write(bytes(response_json, "utf8"))
 
-with HTTPServer(('', 8000), handler) as server:
+with HTTPServer(('', 8000), RequestHandler) as server:
     print("Server started on port 8000.")
     server.serve_forever()
