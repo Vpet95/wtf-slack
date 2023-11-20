@@ -4,7 +4,9 @@ import json
 from urllib.parse import parse_qs, urlparse
 import redis
 
-r = redis.Redis()
+from seed_data.qp_glossary_seed_data import SEED_DATA
+
+r = redis.Redis(decode_responses=True)
 r.ping()
 
 SLACK_OPEN_QUOTE = "“"
@@ -33,14 +35,20 @@ list_of_terms = [
     "watermelon",
 ]
 
-r = redis.Redis(decode_responses=True)
 
 # temp redis seeding:
 for term in list_of_terms:
     r.set(term, f"the definition of {term}")
 
+# QP glossary redis seeding:
+for term, definition in SEED_DATA.items():
+    r.set(term, definition)
+
+print("Done seeding redis")
+print(f"Redis seed example. r.get('AE'): {r.get('AE')}")
+
 def parse_command_term_and_definition(text: str):
-    # parse out the term and definition 
+    # parse out the term and definition
     # the term might be multi-token and have quotes around it, so we need to handle that
     term_start_index = 1 if text[0] == SLACK_OPEN_QUOTE else 0
     term_end_char = SLACK_CLOSE_QUOTE if text[0] == SLACK_OPEN_QUOTE else (" " if " " in text else None)
@@ -77,8 +85,7 @@ def parse_command(command_name: str, text: str):
     else:
         # user is querying a term
         term, _ = parse_command_term_and_definition(text)
-        print(f"looking up term: '{term}'")
-        definition = r.get(term)   
+        definition = r.get(term)
         if definition is not None:
             return definition
         else:
@@ -92,7 +99,7 @@ def parse_command(command_name: str, text: str):
                 ):
                     minimum_distance = current_distance
                     likely_match = term
-            
+
             return f"Term '{text}' not found. Did you mean '{likely_match}'? Alternatively, add a definition for it with `/wtf-add [\"]<term>[\"] <definition>`"
 
 class handler(BaseHTTPRequestHandler):
