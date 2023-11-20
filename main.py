@@ -31,6 +31,10 @@ list_of_terms = [
 
 r = redis.Redis(decode_responses=True)
 
+# temp redis seeding:
+for term in list_of_terms:
+    r.set(term, f"the definition of {term}")
+
 def parse_command(command_name: str, text: str):
     if(command_name == '/wtf-add'):
         # todo - implement logic for adding terms 
@@ -40,9 +44,10 @@ def parse_command(command_name: str, text: str):
 
         pass 
     else:
-        # user is querying a term        
-        if r.get(text):
-            return f"<Definition for {text} here>"
+        # user is querying a term
+        definition = r.get(text)   
+        if definition is not None:
+            return definition
         else:
             minimum_distance = -1
             likely_match = ""
@@ -57,9 +62,6 @@ def parse_command(command_name: str, text: str):
             
             return f"Term '{text}' not found. Did you mean '{likely_match}'? Alternatively, add a definition for it with `/wtf-add [\"]<term>[\"] <definition>`"
 
-# temp redis seeding:
-for term in list_of_terms:
-    r.set(term, f"the definition of {term}")
 class handler(BaseHTTPRequestHandler):
     # example POST request handler - it just response with some text. We'll want to flesh this out
     # to parse out the request, figure out which term the user wants info for, query the db, and respond
@@ -72,7 +74,7 @@ class handler(BaseHTTPRequestHandler):
         params = parse_qs(urlparse(body).path)
 
         response = parse_command(params['command'], params['text'][0].lower())
-        
+
         response_data = {
             "text": response,
             "response_type": "in_channel",
