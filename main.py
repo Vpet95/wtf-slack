@@ -26,6 +26,32 @@ list_of_terms = [
     "watermelon",
 ]
 
+def parse_command(command_name: str, text: str):
+    if(command_name == '/wtf-add'):
+        # todo - implement logic for adding terms 
+        # syntax looks like /wtf-add ["] term ["] definition 
+        # where term can be surrounded by double-quotes if it's a multi-word term. 
+        # Everything after it is considered the definition.
+
+        pass 
+    else:
+        # user is querying a term        
+        if text in list_of_terms:
+            return f"<Definition for {text} here>"
+        else:
+            minimum_distance = -1
+            likely_match = ""
+
+            for term in list_of_terms:
+                current_distance = distance(text, term)
+                if (
+                    minimum_distance == -1 or current_distance < minimum_distance
+                ):
+                    minimum_distance = current_distance
+                    likely_match = term
+            
+            return f"Term '{text}' not found. Did you mean '{likely_match}'? Alternatively, add a definition for it with `/wtf-add [\"]<term>[\"] <definition>`"
+
 class handler(BaseHTTPRequestHandler):
     # example POST request handler - it just response with some text. We'll want to flesh this out
     # to parse out the request, figure out which term the user wants info for, query the db, and respond
@@ -37,34 +63,7 @@ class handler(BaseHTTPRequestHandler):
 
         params = parse_qs(urlparse(body).path)
 
-        # params['text'] has the user's query
-        response = ""
-        minimum_distance = -1
-        user_entry = params["text"][0].lower()
-        print(distance(user_entry, "term2"))
-        if user_entry in list_of_terms:
-            response = "The term you entered is in the list of terms."
-        else:
-            for term in list_of_terms:
-                if (
-                    distance(user_entry, term) < minimum_distance
-                    and minimum_distance != -1
-                ):
-                    minimum_distance = distance(user_entry, term)
-                    response = (
-                        "The term you entered is not in the list of terms, the closest match is: "
-                        + term
-                        + " with a distance of: "
-                        + str(minimum_distance)
-                    )
-                elif minimum_distance == -1:
-                    minimum_distance = distance(user_entry, term)
-                    response = (
-                        "The term you entered is not in the list of terms, the closest match is: "
-                        + term
-                        + " with a distance of: "
-                        + str(minimum_distance)
-                    )
+        response = parse_command(params['command'], params['text'][0])
 
         response_data = {
             "text": response,
