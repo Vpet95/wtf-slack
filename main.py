@@ -27,6 +27,7 @@ class COMMANDS(Enum):
     ADD = f"/{COMMAND_PREFIX}-add"
     UPDATE = f"/{COMMAND_PREFIX}-update"
     DELETE = f"/{COMMAND_PREFIX}-delete"
+    LIST = f"/{COMMAND_PREFIX}-list"
     HELP = f"/{COMMAND_PREFIX}-help"
 
 term_arg = f"{SLACK_OPEN_QUOTE}[term]{SLACK_CLOSE_QUOTE}"
@@ -48,6 +49,10 @@ command_info = {
     COMMANDS.DELETE: {
         "args": term_arg,
         "description": f"- delete a term from the glossary."
+    },
+    COMMANDS.LIST: {
+        "args": "",
+        "description": f"- list all terms currently available in glossary."
     },
     COMMANDS.HELP: {
         "args": "",
@@ -91,6 +96,9 @@ def parse_command(command_name: str, text: str):
         r.set(term, definition)
 
         return f"Added definition for '{term}'"
+    elif(command_name == COMMANDS.LIST.value):
+        terms = r.keys()
+        return f"Available terms are: \n{', '.join(terms)}"
     elif(command_name == COMMANDS.HELP.value):
         return (
                 "\n".join(f"`{command.value} {command_info.get(command)['args']}` {command_info.get(command)['description']}" for command in COMMANDS) +
@@ -186,7 +194,7 @@ class handler(BaseHTTPRequestHandler):
             # }
         else:
             command = params['command'][0]
-            if (command == COMMANDS.HELP.value):
+            if (command in [COMMANDS.HELP.value, COMMANDS.LIST.value]):
                 response = parse_command(command, '')
             else:
                 response = "Error: missing term" if 'text' not in params else parse_command(command, params['text'][0].lower())
