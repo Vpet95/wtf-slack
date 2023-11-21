@@ -69,6 +69,12 @@ eli5 command, use: `python3 ./main.py --no-ai=true`
 
 Call the app's help for more information `python3 ./main.py --help`
 
+## format the app
+
+To see if and which files would be reformatted, run: `python3 -m black --check .`
+
+To format all of the files in the directory, run: `python3 -m black .`
+
 # hot reloading
 
 If you want your server to hot reload when you make changes to `main.py`, run it with [jurigged](https://github.com/breuleux/jurigged) instead.

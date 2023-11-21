@@ -48,7 +48,7 @@ SEED_DATA = {
         """,
     "Lean Revenue": """Revenue from existing clients; tends to be where most of the profit comes from, and can include Deferred Revenue Recognition, Unbilled Deferred Revenue Recognition, Renewal of Existing Customer Agreements, Expansions of those Agreements.
         """,
-        "Expensive Revenue": """ Revenue from new clients. Initially unprofitable due to CAC. Can be broken into two types:
+    "Expensive Revenue": """ Revenue from new clients. Initially unprofitable due to CAC. Can be broken into two types:
             - Good - worth the long term investment
             - Bad - never becomes profitable""",
     "COGS": "Cost of Goods Sold",
