@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from Levenshtein import distance
 import json
 from urllib.parse import parse_qs, urlparse
+import requests
 import redis
 
 from seed_data.qp_glossary_seed_data import SEED_DATA
@@ -102,6 +103,28 @@ def parse_command(command_name: str, text: str):
 
             return f"Term '{text}' not found. Did you mean '{likely_match}'? Alternatively, add a definition for it with `/wtf-add [\"]<term>[\"] <definition>`"
 
+def process_eli5(payload):
+    print(payload)
+
+    callback_id = payload['callback_id']
+
+    # sanity check the callback id so we know it's our app talking
+    if(callback_id != 'eli5_me'):
+        return "Error: invalid callback_id"
+
+    message = payload['message']['text']
+
+    eli5_prompt = f"A Slack user wrote the following message: '{message}'. However, this message is a bit complex and full of domain-specific jargon. Please explain this message like I'm 5, making sure to unpack any bits of jargon in such a way that the message makes perfect sense and is fully transparent."
+
+    # todo - submit prompt to some generative model
+    
+    response_url = payload['response_url']
+
+    response = requests.post(response_url, json={ 'text': eli5_prompt, 'response_type': "in_channel" })
+    print(f"Sent prompt to Slack; status code: {response.status_code}")
+
+    return "success"
+
 class handler(BaseHTTPRequestHandler):
     # example POST request handler - it just response with some text. We'll want to flesh this out
     # to parse out the request, figure out which term the user wants info for, query the db, and respond
@@ -112,14 +135,21 @@ class handler(BaseHTTPRequestHandler):
         body = self.rfile.read(content_length).decode("utf-8")
 
         params = parse_qs(urlparse(body).path)
+        #print(f"params: {params}")
 
-        response = "Error: missing term" if 'text' not in params else parse_command(params['command'][0], params['text'][0].lower())
+        if('payload' in params):
+            response = process_eli5(json.loads(params['payload'][0]))
+            response_body = {
+                'response_action': "ack"
+            }
+        else:
+            response = "Error: missing term" if 'text' not in params else parse_command(params['command'][0], params['text'][0].lower())
+            response_body = {
+                "text": response,
+                "response_type": "in_channel",
+            }
 
-        response_data = {
-            "text": response,
-            "response_type": "in_channel",
-        }
-        response_json = json.dumps(response_data)
+        response_json = json.dumps(response_body)
 
         self.send_response(200)
         self.send_header("Content-type", "application/json")
