@@ -1,9 +1,13 @@
+import os
+import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from Levenshtein import distance
 import json
 from urllib.parse import parse_qs, urlparse
+from openai import OpenAI
 import requests
 import redis
+import threading
 
 from seed_data.qp_glossary_seed_data import SEED_DATA
 
@@ -36,6 +40,14 @@ list_of_terms = [
     "watermelon",
 ]
 
+# the openai library automatically reads this in, we're just sanity checking here so we can terminate the server
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if OPENAI_API_KEY is None:
+    print("Error: missing OPENAI_API_KEY environment variable")
+    sys.exit(1)
+
+client = OpenAI()
 
 # temp redis seeding:
 for term in list_of_terms:
@@ -114,22 +126,37 @@ def process_eli5(payload):
 
     message = payload['message']['text']
 
-    eli5_prompt = f"A Slack user wrote the following message: '{message}'. However, this message is a bit complex and full of domain-specific jargon. Please explain this message like I'm 5, making sure to unpack any bits of jargon in such a way that the message makes perfect sense and is fully transparent."
+    completion = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a Slack message 'ELI5' assistant. Summarize all incoming messages in a way a 5 year old would understand. Make sure to unpack and explain all technical jargon, acronyms, etc. so the message is easily understood and transparent."},
+            {"role": "user", "content": message}
+        ]
+    )
 
-    # todo - submit prompt to some generative model
+    print(completion.choices[0].message.content)
     
     response_url = payload['response_url']
 
-    response = requests.post(response_url, json={ 'text': eli5_prompt, 'response_type': "in_channel" })
+    response = requests.post(response_url, json={ 'text': completion.choices[0].message.content, 'response_type': "in_channel" })
     print(f"Sent prompt to Slack; status code: {response.status_code}")
 
     return "success"
 
+
+def processing_message(response_url: str):
+    response = requests.post(response_url, json={ 'text': "Ok, I'm working on translating that message. This may take several seconds, sit tight!"})
+    print(f"processing_message status code: {response.status_code}")
+
 class handler(BaseHTTPRequestHandler):
-    # example POST request handler - it just response with some text. We'll want to flesh this out
-    # to parse out the request, figure out which term the user wants info for, query the db, and respond
-    # OR use a nearest-distance algorithm and respond with suggestions
-    # eventually: add functionality to populate the DB with new terms
+    def acknowledge(self): 
+        ack_response = {'response_action': 'ack'}
+        ack_response_json = json.dumps(ack_response)
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(bytes(ack_response_json, "utf8"))
+        
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
         body = self.rfile.read(content_length).decode("utf-8")
@@ -138,10 +165,20 @@ class handler(BaseHTTPRequestHandler):
         #print(f"params: {params}")
 
         if('payload' in params):
-            response = process_eli5(json.loads(params['payload'][0]))
-            response_body = {
-                'response_action': "ack"
-            }
+            payload = json.loads(params['payload'][0])
+
+            # acknowledge receipt of slack action
+            self.acknowledge()
+
+            # the openai request can take a bit of time, let the user know we're working on it
+            processing_message(payload['response_url'])
+
+            # process request 
+            threading.Thread(target=process_eli5, args=(payload,)).start()
+            # response = process_eli5(json.loads(params['payload'][0]))
+            # response_body = {
+            #     'response_action': "ack"
+            # }
         else:
             response = "Error: missing term" if 'text' not in params else parse_command(params['command'][0], params['text'][0].lower())
             response_body = {
@@ -149,15 +186,15 @@ class handler(BaseHTTPRequestHandler):
                 "response_type": "in_channel",
             }
 
-        response_json = json.dumps(response_body)
+            response_json = json.dumps(response_body)
 
-        self.send_response(200)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
 
-        self.wfile.write(bytes(response_json, "utf8"))
+            self.wfile.write(bytes(response_json, "utf8"))
 
-
-with HTTPServer(("", 8000), handler) as server:
-    print("Server started on port 8000.")
-    server.serve_forever()
+if __name__ == "__main__":
+    with HTTPServer(("", 8000), handler) as server:
+        print("Server started on port 8000.")
+        server.serve_forever()
