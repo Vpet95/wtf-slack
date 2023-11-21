@@ -114,7 +114,8 @@ def parse_command(command_name: str, text: str):
                     minimum_distance = current_distance
                     likely_match = term
 
-            return f"Term '{text}' not found. Did you mean '{likely_match}'? Alternatively, add a definition for it with `{COMMANDS.ADD.value} [\"][term][\"] [definition]`"
+            add_definition_instructions = f"add a definition for it with `{COMMANDS.ADD.value} [\"][term][\"] [definition]`"
+            return f"Term '{text}' not found. Did you mean '{likely_match}'? Alternatively, {add_definition_instructions}" if minimum_distance <= round(len(term) / 2) else f"Term '{text}' not found. You can {add_definition_instructions}."
 
 def process_eli5(payload):
     print(payload)
@@ -133,7 +134,7 @@ def process_eli5(payload):
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a Slack message 'ELI5' assistant. Summarize all incoming messages in a way a 5 year old would understand. Make sure to unpack and explain all technical jargon, acronyms, etc. so the message is easily understood and transparent."},
+            {"role": "system", "content": "Please briefly explain the meaning of the following message from Slack in simple terms, so that someone without any background knowledge can understand it? Please clarify any technical terms, acronyms, or jargon used in the message."},
             {"role": "user", "content": message}
         ]
     )
