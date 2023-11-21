@@ -134,8 +134,7 @@ def process_eli5(payload):
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "Please briefly explain the meaning of the following message from Slack in simple terms, so that someone without any background knowledge can understand it? Please clarify any technical terms, acronyms, or jargon used in the message."},
-            {"role": "user", "content": message}
+            { "role": "user", "content": f"Can you please explain the following message from Slack in simple terms for someone who doesn't have any background knowledge? I don't want just a summary, but a detailed explanation. Please clarify any technical terms, acronyms, or jargon used. The message says '{message}'"}
         ]
     )
 
@@ -150,7 +149,7 @@ def process_eli5(payload):
 
 
 def processing_message(response_url: str):
-    response = requests.post(response_url, json={ 'text': "Ok, I'm working on translating that message. This may take several seconds, sit tight!"})
+    response = requests.post(response_url, json={ 'text': "Ok, I'm working on deciphering that message. This may take several seconds, sit tight!"})
     print(f"processing_message status code: {response.status_code}")
 
 class handler(BaseHTTPRequestHandler):
