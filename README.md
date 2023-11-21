@@ -39,6 +39,7 @@ In another terminal tab, start the redis stack server: `redis-stack-server`
 
 For the ELI5 dropdown action, you'll need to:
 
+- Set up the dropdown actions in slack, once you've made your app (see [below for more info](#set-up-slack-message-dropdown-options))
 - [make an OpenAI account](https://auth0.openai.com/u/signup/identifier?state=hKFo2SBuWlR1Zll4ZnluNUF2WXN3ZjhpSjVPcDREOS16d0gxT6Fur3VuaXZlcnNhbC1sb2dpbqN0aWTZIHQwRjFKUkwxS2hpMlhBd1dTa0QwUzJkbTByb08zd0RFo2NpZNkgRFJpdnNubTJNdTQyVDNLT3BxZHR3QjNOWXZpSFl6d0Q).
 - Then, [add an API key](https://platform.openai.com/api-keys)
 - Store the API key in an environment variable in your `~/.zprofile` file like so:
@@ -50,7 +51,7 @@ For the ELI5 dropdown action, you'll need to:
 New OpenAI accounts receive $5 of free credit, and each GPT request is fairly inexpensive so this should be sufficient for the hackathon.
 
 If you want to bypass this functionality and run without an OPENAI_API_KEY set,
-you can pass a flag when running the app (see next step, "run the app")
+you can pass a flag when running the app (see ["run the app" section, below](#run-the-app))
 
 ## run the app
 
@@ -67,6 +68,14 @@ To allow the app to run without setting an `OPENAI_API_KEY`, disabling the
 eli5 command, use: `python3 ./main.py --no-ai=true`
 
 Call the app's help for more information `python3 ./main.py --help`
+
+## format the app
+
+Install [black](https://pypi.org/project/black/) via `pip install black`.
+
+To see if and which files would be reformatted, run: `python3 -m black --check .`
+
+To format all of the files in the directory, run: `python3 -m black .`
 
 # hot reloading
 
@@ -91,3 +100,22 @@ Save your changes
 You should now be able to trigger your command in slack with `/name-you-chose`
 
 And see the response "Hello, World! Here is a POST response. It worked!"
+
+### set up slack message dropdown options
+
+To enable the ELI5 features, you need to do additional setup.
+
+Go to the [settings page for your slack apps](https://api.slack.com/apps) and
+select your app:
+
+In Features > Interactivity & Shortcuts, you need to:
+
+- Turn on "Interactivity"
+- Add your ngrok url to "Request URL"
+- "Create New Shortcut" twice (In both cases, the Name can be whatever you want, but the callback must match
+  the strings below exactly):
+  - Name: ELI5, Location: Messages, Callback ID: eli5_me
+  - Name: ELI5, Location: Messages, Callback ID: eli5_me_privately
+
+You should now be able to click on the 3 dot menu for any message, and select
+your shortcut. If you don't see yours, select "More Message Shortcuts" and search by name.
