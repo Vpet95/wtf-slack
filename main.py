@@ -121,9 +121,10 @@ def process_eli5(payload):
     callback_id = payload['callback_id']
 
     # sanity check the callback id so we know it's our app talking
-    if(callback_id != 'eli5_me'):
+    if(callback_id != 'eli5_me' and callback_id != 'eli5_me_privately'):
         return "Error: invalid callback_id"
 
+    is_private = callback_id == 'eli5_me_privately'
     message = payload['message']['text']
 
     completion = client.chat.completions.create(
@@ -138,7 +139,7 @@ def process_eli5(payload):
     
     response_url = payload['response_url']
 
-    response = requests.post(response_url, json={ 'text': completion.choices[0].message.content, 'response_type': "in_channel" })
+    response = requests.post(response_url, json={ 'text': completion.choices[0].message.content, **({} if is_private else {'response_type': "in_channel"}) })
     print(f"Sent prompt to Slack; status code: {response.status_code}")
 
     return "success"
