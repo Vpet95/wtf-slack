@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import sys
@@ -19,14 +20,6 @@ r.ping()
 SLACK_OPEN_QUOTE = "“"
 SLACK_CLOSE_QUOTE = "”"
 
-# the openai library automatically reads this in, we're just sanity checking here so we can terminate the server
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-if OPENAI_API_KEY is None:
-    print("Error: missing OPENAI_API_KEY environment variable")
-    sys.exit(1)
-
-client = OpenAI()
 # Change prefix to whatever you're using locally to test. Leave as `wtf` for main app and demo.
 COMMAND_PREFIX = "wtf"
 class COMMANDS(Enum):
@@ -62,12 +55,6 @@ command_info = {
     }
 }
 
-# QP glossary redis seeding:
-for term, definition in SEED_DATA.items():
-    r.set(term.lower(), definition)
-
-print("Done seeding redis")
-print(f"Redis seed example. r.get('AE'): {r.get('AE')}")
 
 def parse_command_term_and_definition(text: str):
     # parse out the term and definition
@@ -106,7 +93,7 @@ def parse_command(command_name: str, text: str):
         return f"Added definition for '{term}'"
     elif(command_name == COMMANDS.HELP.value):
         return (
-                "\n".join(f"`{command.value} {command_info.get(command)['args']}` {command_info.get(command)['description']}" for command in COMMANDS) + 
+                "\n".join(f"`{command.value} {command_info.get(command)['args']}` {command_info.get(command)['description']}" for command in COMMANDS) +
                 "\n\nA lot of the terms in the glossary were gathered from <https://www.gainsight.com/guides/the-essential-guide-to-recurring-revenue/|this really helpful site>."
             )
     else:
@@ -131,6 +118,8 @@ def parse_command(command_name: str, text: str):
 
 def process_eli5(payload):
     print(payload)
+    if not client:
+        return "Sorry, this feature is disabled at the moment."
 
     callback_id = payload['callback_id']
 
@@ -150,7 +139,7 @@ def process_eli5(payload):
     )
 
     print(completion.choices[0].message.content)
-    
+
     response_url = payload['response_url']
 
     response = requests.post(response_url, json={ 'text': completion.choices[0].message.content, **({} if is_private else {'response_type': "in_channel"}) })
@@ -164,14 +153,14 @@ def processing_message(response_url: str):
     print(f"processing_message status code: {response.status_code}")
 
 class handler(BaseHTTPRequestHandler):
-    def acknowledge(self): 
+    def acknowledge(self):
         ack_response = {'response_action': 'ack'}
         ack_response_json = json.dumps(ack_response)
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
         self.wfile.write(bytes(ack_response_json, "utf8"))
-        
+
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
         body = self.rfile.read(content_length).decode("utf-8")
@@ -188,7 +177,7 @@ class handler(BaseHTTPRequestHandler):
             # the openai request can take a bit of time, let the user know we're working on it
             processing_message(payload['response_url'])
 
-            # process request 
+            # process request
             threading.Thread(target=process_eli5, args=(payload,)).start()
             # response = process_eli5(json.loads(params['payload'][0]))
             # response_body = {
@@ -216,4 +205,33 @@ class handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     with HTTPServer(("", 8000), handler) as server:
         print("Server started on port 8000.")
+        parser = argparse.ArgumentParser(
+                prog='Slack Slash Command Glossary and ELI5 Bot',
+                description='Returns definitions for common QP terms (allowing updates and edits), and provides explanations of input text on demand.',
+                epilog='made with <3 by Maeve and Vuk and Rinat Kborg',
+        )
+        parser.add_argument('--seed', required=False, type=bool, default=False,
+                            help='Whether to seed the database with sample data. Run without this flag to preserve updates to seed data definitions from previous runs. Defaults to False.')
+        parser.add_argument('--no-ai', required=False, type=bool, default=False,
+                            help='Allow the app to run without the open ai key, also turning off the ai commands. Defaults to False.')
+        args = parser.parse_args()
+        if args.seed:
+            print("Seeding database")
+            for term, definition in SEED_DATA.items():
+                r.set(term.lower(), definition)
+
+            print("Done seeding redis")
+            print(f"Redis seed example. r.get('AE'): {r.get('AE')}")
+        if args.no_ai == True:
+            client = None
+            print("Running without AI")
+        else:
+            # the openai library automatically reads this in, we're just sanity checking here so we can terminate the server
+            OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+            if OPENAI_API_KEY is None:
+                print("Error: missing OPENAI_API_KEY environment variable")
+                sys.exit(1)
+            client = OpenAI()
+
         server.serve_forever()

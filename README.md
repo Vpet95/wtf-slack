@@ -18,7 +18,9 @@ In a terminal tab run `ngrok http 8000`
 Copy the Forwarding address, which will look like
 `https://<random-id-here>.ngrok-free.app`
 
-Note: this address will change every time you restart ngrok. You can get one static domain with a free account in the "Domains" tab - if you choose to do
+Note: this address will change every time you restart ngrok, and you'll need
+to keep updating your slash command's destination url in slack.
+You can get one static domain with a free account in the "Domains" tab - if you choose to do
 that, remember to set your port to 8000 (ngrok's instructions default to 80).
 
 ## redis
@@ -47,10 +49,24 @@ For the ELI5 dropdown action, you'll need to:
 
 New OpenAI accounts receive $5 of free credit, and each GPT request is fairly inexpensive so this should be sufficient for the hackathon.
 
+If you want to bypass this functionality and run without an OPENAI_API_KEY set,
+you can pass a flag when running the app (see next step, "run the app")
+
 ## run the app
 
-Install python dependencies: `pip install -r requirements.txt`
-In another terminal tab, run the python server with `python3 ./main.py`
+In another terminal tab:
+Install python dependencies with `pip install -r requirements.txt`
+
+Then run the python server:
+The first time you run, you may want to seed the db with common QP terms and
+definitions. Use: `python3 ./main.py --seed=true`
+
+To run without seeding, use `python3 ./main.py`
+
+To allow the app to run without setting an `OPENAI_API_KEY`, disabling the
+eli5 command, use: `python3 ./main.py --no-ai=true`
+
+Call the app's help for more information `python3 ./main.py --help`
 
 # hot reloading
 
