@@ -33,6 +33,20 @@ to check and update your `$PATH` with the correct redis-stack-server version
 
 In another terminal tab, start the redis stack server: `redis-stack-server`
 
+## ELi5 Setup
+
+For the ELI5 dropdown action, you'll need to:
+
+- [make an OpenAI account](https://auth0.openai.com/u/signup/identifier?state=hKFo2SBuWlR1Zll4ZnluNUF2WXN3ZjhpSjVPcDREOS16d0gxT6Fur3VuaXZlcnNhbC1sb2dpbqN0aWTZIHQwRjFKUkwxS2hpMlhBd1dTa0QwUzJkbTByb08zd0RFo2NpZNkgRFJpdnNubTJNdTQyVDNLT3BxZHR3QjNOWXZpSFl6d0Q).
+- Then, [add an API key](https://platform.openai.com/api-keys)
+- Store the API key in an environment variable in your `~/.zprofile` file like so:
+  ```
+  export OPENAI_API_KEY="<your key here>"
+  ```
+  Note: the environment variable name here matters and needs to be exact - this is what the open AI library looks for under the hood.
+
+New OpenAI accounts receive $5 of free credit, and each GPT request is fairly inexpensive so this should be sufficient for the hackathon.
+
 ## run the app
 
 Install python dependencies: `pip install -r requirements.txt`
