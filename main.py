@@ -17,29 +17,6 @@ r.ping()
 SLACK_OPEN_QUOTE = "“"
 SLACK_CLOSE_QUOTE = "”"
 
-list_of_terms = [
-    "apple",
-    "banana",
-    "cherry",
-    "date",
-    "elderberry",
-    "fig",
-    "grape",
-    "honeydew",
-    "kiwi",
-    "lemon",
-    "mango",
-    "nectarine",
-    "orange",
-    "papaya",
-    "quince",
-    "raspberry",
-    "strawberry",
-    "tangerine",
-    "ugli fruit",
-    "watermelon",
-]
-
 # the openai library automatically reads this in, we're just sanity checking here so we can terminate the server
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -48,10 +25,6 @@ if OPENAI_API_KEY is None:
     sys.exit(1)
 
 client = OpenAI()
-
-# temp redis seeding:
-for term in list_of_terms:
-    r.set(term, f"the definition of {term}")
 
 # QP glossary redis seeding:
 for term, definition in SEED_DATA.items():
