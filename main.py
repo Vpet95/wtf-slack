@@ -126,33 +126,40 @@ def parse_command(command_name: str, text: str):
             return f"Term '{text}' not found. Did you mean '{likely_match}'? Alternatively, {add_definition_instructions}" if minimum_distance <= round(len(term) / 2) else f"Term '{text}' not found. You can {add_definition_instructions}."
 
 def process_eli5(payload):
-    print(payload)
-    if not client:
-        return "Sorry, this feature is disabled at the moment."
+    print(f">>>> process_eli5() payload: {payload}")
+    try:
+        callback_id = payload['callback_id']
+        is_private = callback_id == 'eli5_me_privately'
 
-    callback_id = payload['callback_id']
+        if client:
 
-    # sanity check the callback id so we know it's our app talking
-    if(callback_id != 'eli5_me' and callback_id != 'eli5_me_privately'):
-        return "Error: invalid callback_id"
+            # sanity check the callback id so we know it's our app talking
+            if(callback_id != 'eli5_me' and callback_id != 'eli5_me_privately'):
+                return "Error: invalid callback_id"
 
-    is_private = callback_id == 'eli5_me_privately'
-    message = payload['message']['text']
+            message = payload['message']['text']
 
-    completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Please briefly explain the meaning of the following message from Slack in simple terms, so that someone without any background knowledge can understand it? Please clarify any technical terms, acronyms, or jargon used in the message."},
-            {"role": "user", "content": message}
-        ]
-    )
+            completion = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Please briefly explain the meaning of the following message from Slack in simple terms, so that someone without any background knowledge can understand it? Please clarify any technical terms, acronyms, or jargon used in the message."},
+                    {"role": "user", "content": message}
+                ]
+            )
+            reply_text = completion.choices[0].message.content
+        else:
+            reply_text = "Sorry, this feature is disabled at the moment."
 
-    print(completion.choices[0].message.content)
+    except Exception as e:
+        print(f">>>> process_eli5 error: {e}")
+        reply_text = "Sorry, something went wrong. Please try again or contact your friendly bot-keeper for help."
 
+
+    print(f">>>> process_eli5 reply_text: {reply_text}")
     response_url = payload['response_url']
 
-    response = requests.post(response_url, json={ 'text': completion.choices[0].message.content, **({} if is_private else {'response_type': "in_channel"}) })
-    print(f"Sent prompt to Slack; status code: {response.status_code}")
+    response = requests.post(response_url, json={ 'text': reply_text, **({} if is_private else {'response_type': "in_channel"}) })
+    print(f">>>> process_eli5 Sent prompt to Slack; status code: {response.status_code}")
 
     return "success"
 
@@ -217,7 +224,7 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(
                 prog='Slack Slash Command Glossary and ELI5 Bot',
                 description='Returns definitions for common QP terms (allowing updates and edits), and provides explanations of input text on demand.',
-                epilog='made with <3 by Maeve and Vuk and Rinat Kborg',
+                epilog='made with <3 by Maeve and Vuk and Rinat and Kborg',
         )
         parser.add_argument('--seed', required=False, type=bool, default=False,
                             help='Whether to seed the database with sample data. Run without this flag to preserve updates to seed data definitions from previous runs. Defaults to False.')
