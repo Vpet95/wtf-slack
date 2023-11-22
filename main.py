@@ -148,10 +148,11 @@ def parse_command(command_name: str, text: str):
 
 def process_eli5(payload):
     print(f">>>> process_eli5() payload: {payload}")
-    try:
-        callback_id = payload["callback_id"]
-        is_private = callback_id == "eli5_me_privately"
 
+    callback_id = payload["callback_id"]
+    is_private = callback_id == "eli5_me_privately"
+
+    try:
         if client:
             # sanity check the callback id so we know it's our app talking
             if callback_id != "eli5_me" and callback_id != "eli5_me_privately":
@@ -179,11 +180,21 @@ def process_eli5(payload):
     print(f">>>> process_eli5 reply_text: {reply_text}")
     response_url = payload["response_url"]
 
+    link_to_original_message = f"https://{payload['team']['domain']}.slack.com/archives/{payload['channel']['id']}/p{str(payload['message_ts']).replace('.', '')}"
     response = requests.post(
         response_url,
         json={
             "text": reply_text,
             **({} if is_private else {"response_type": "in_channel"}),
+            **(
+                {}
+                if is_private
+                else {
+                    "attachments": [
+                        {"text": f"<{link_to_original_message}|Original message>"}
+                    ]
+                }
+            ),
         },
     )
     print(
